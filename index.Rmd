@@ -1,0 +1,188 @@
+Freenet statistics
+========================================================
+
+These results are based on fetching and inserting 32 single blocks of data. We perform such a 32-single block fetching test every day. Each day we try to retrieve the 32 blocks inserted (2^delta)-1 days ago for delta = 1,2, ... 8. We repeat this process every day for as long as there isn't a new Freenet version. All the fetch results which have been obtained with a specific version of freenet are part of the same sample. From these tests we get results about the retrievability of data, how long it takes for requests to complete and how long inserts take.
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, results='hide'}
+library(ggplot2)
+library(xtable)
+library(scales)     # Need the scales package
+library(reshape)
+
+setwd("~/freenet/retention/")
+
+fetch <- read.csv("fetch.csv",header=T, sep="\t")
+insert <- read.csv("insert.csv",header=T, sep="\t")
+groups <- read.csv("group.csv",header=T, sep="\t")
+
+fetch$date <- as.POSIXct(fetch$date, format = "%Y.%m.%d")
+fetch$date <- as.Date.POSIXct(fetch$date)
+fetch$version <- as.factor(fetch$version)
+fetch$delta <- as.factor(fetch$delta)
+
+insert$date <- as.POSIXct(insert$date, format = "%Y.%m.%d")
+insert$date <- as.Date.POSIXct(insert$date)
+insert$version <- as.factor(insert$version)
+
+
+groups$version <- as.factor(groups$version)
+groups$mandatory <- as.factor(groups$mandatory)
+
+data <- merge(x=fetch,y=groups, by="version", all.x=T)
+data <- na.omit(data)
+
+insert <- merge(x=insert,y=groups, by="version", all.x=T)
+```
+
+Fetch statistics
+--------------------------------------------------
+
+The next graphs will plot the average fetch performance for a limited time period. Naturally these results are pretty distorted, because the network size isn't taken into account. Another issue is that we cannot clearly distinguish between fetch related improvements and insertion related improvements, i.e. they are co-dependent in Freenet. Next are 8 graphs showing fetch performance for recently inserted chunks of random data and less recently inserted chucks of data.
+
+### Statistical models
+
+After acquiring a number of samples we actually want to asses whether the fetch results obtained with freenet version A are similar or different compared to another version of Freenet. You can imagine that there is a chance that the results of a single test are actually lucky or unlucky. Properly analyzing the results from a number of different tests allows to us calculate how certain we are that a specific version is an improvement when compared to another version.
+
+The following R output may be a bit difficult to grasp, so hang on. Here we train a linear regression model on a bunch of samples. Each sample is based on one of the last 10 mandatory builds. Each build is treated as a factor. The following statistical tests determine whether the sample associated with a factor deviates significantly from the average of all the data combined. Obviously, we would like to see a build that improves on past performance significantly with a P < 0.05. For each delta (time past since the last attempt to fetch it) the output of the linear regression model is shown. This results in 8 models in total, one for each delta. Want to know whether a specific build is an improvement compared to another one? Hunt for versions with a P < 0.05.
+
+
+```{r fetchplots, echo=FALSE, warning=FALSE, message=FALSE, fig.width=20, results='asis'}
+plotit <- function(datai, prefix){
+  for(deltaValue in seq(1:8))
+  {
+    cat(paste('<h4> Plot and linear regression model for data inserted ', (2^deltaValue)-1, 'days ago</h4>\n'))
+    
+    plot <- ggplot(subset(datai, delta==deltaValue), aes(date, ratio, group=1, fill=mandatory, color=mandatory)) +
+      geom_smooth(aes(label="smoothed data"), color="grey", alpha=0.08, span=0.3, se=F) +
+      geom_boxplot(aes(group=mandatory), alpha=0.4) +
+      geom_jitter() + 
+      ggtitle(paste("Fetch ratio for the last", length(last_mandatory), "mandatory builds for data inserted", (2^deltaValue)-1, "day(s) ago.")) + 
+      ylab("Ratio of succesfully fetched blocks")
+  
+    print(plot)
+
+    print(xtable(summary(lm(ratio ~ 1 + mandatory+date, data=subset(datai, delta==deltaValue)))), type="html", comment=FALSE)
+    }
+}
+
+last_mandatory = tail(unique(data$mandatory), 10)
+last_builds <- subset(data, mandatory %in% last_mandatory)
+plotit(last_builds, "last_builds_fetch_delta_")
+```
+
+How long does it take for a request to complete?
+-----------------------------------------------
+
+The following graph plots how long it takes for an average request for a single block of data to complete.
+
+```{r request_time, message=FALSE, warning=FALSE, echo=FALSE, fig.width=20}
+
+#plot request times for different versions over time for the last 10 mandatory builds
+last_10_builds <- subset(data, mandatory %in% tail(unique(data$mandatory), 10))
+ggplot(last_10_builds, aes(date, time, group=delta, color=delta)) + 
+  geom_smooth(span=0.2, size=2, alpha=0.6, se=F) +
+  geom_jitter(size=2, alpha=0.3) +
+  ylab("Fetch duration in milliseconds")
+
+```
+
+How long does it take to insert stuff?
+----------------------
+
+```{r insert_time,  echo=FALSE, message=FALSE, fig.width=20}
+#plot request times for different versions over time for the last 10 mandatory builds
+last_10_insert_builds <- subset(insert, mandatory %in% tail(unique(data$mandatory), 10))
+ggplot(last_10_insert_builds, aes(date, time)) + 
+  geom_smooth(group=1, span=0.2, size=2) +
+  geom_jitter(size=2, alpha=0.3) +
+  ylab("Insert duration in milliseconds")
+```
+
+
+Bootstrapping
+=================================
+
+The following graph plots how long it takes for a node to bootstrap. That means, the time in seconds required to get 6 opennet peers or more via seed nodes.
+
+```{r bootstrapping, fig.width=20, echo=FALSE, message=FALSE}
+bootstrapping <- read.table("bootstrapping/data.txt",
+                            header=F, 
+                            sep="\t")
+colnames(bootstrapping) <- c("date", "time")
+
+bootstrapping$date <- as.Date(bootstrapping$date)
+
+xa <- ylab("Time required to get 6 seednodes in seconds")
+
+ggplot(data=subset(bootstrapping, date > Sys.Date() - 14), aes(date, time)) +
+  geom_smooth(aes(date, time), method="loess") + 
+  geom_jitter(aes(date, time), alpha=0.2) + xa
+
+
+ggplot(data=bootstrapping, aes(date, "bootstrapping.time")) +
+  geom_smooth(aes(date, time), span=0.1, method="loess") + 
+  geom_jitter(aes(date, time), alpha=0.2) + xa
+
+```
+
+Seed node statistics
+==============================
+
+
+Versions
+----------------------
+
+```{r versions, fig.width=20, message=FALSE, echo=FALSE, warning=FALSE}
+versions <- read.table("version_distribution/3_days.txt",
+                            header=T, 
+                            sep="\t")
+versions$time <- as.POSIXct(versions$time, origin = "1970-01-01")
+versions <- melt(versions, id="time")
+
+ggplot(data=versions, aes(time, value, group=variable, color=variable)) +
+  geom_smooth(method="loess", span=0.3) + 
+  geom_jitter(alpha=0.2) + 
+  ylab("Number of peers with this version")
+```
+
+Announcements
+--------------
+
+```{r announcements, fig.width=20, message=FALSE, echo=FALSE, warning=FALSE}
+announcements <- read.csv("announcements/plot_data.txt", sep="\t", header=TRUE, colClasses = c("numeric", "numeric","numeric", "numeric"))
+
+announcements$Time <- as.POSIXct(announcements$Time, origin="1970-01-01")
+announcements <- subset(announcements, Time > Sys.time() - 3600*24*14)
+announcements <- melt(announcements, id="Time")
+
+
+ggplot(data=announcements, aes(Time,value, color=variable)) + geom_smooth() + 
+  geom_jitter(aes(Time, value, color=variable), span=0.1, alpha=0.2) + 
+  scale_y_continuous(trans=log2_trans()) + 
+  ylab("number of peers on a log2 scale")
+
+```
+
+
+Peer status
+-------------------------------
+
+```{r peer_status,  fig.width=20, message=FALSE, echo=FALSE, warning=FALSE}
+connected <- read.table("peer_stats/connection_history.txt",
+                            header=T, 
+                            sep="\t")
+                            
+connected$Time <- as.POSIXct(connected$Time, origin="1970-01-01")
+connected <- subset(connected, Time > Sys.time() - 3600*24*14)
+connected <- melt(connected, id="Time")
+
+ggplot(data=connected, aes(Time,value, group=variable, color=variable)) + geom_smooth() + 
+  geom_jitter(aes(Time, value, color=variable, group=variable), span=0.1, alpha=0.2) +
+  ylab("Number of connected peers")
+```
+
+
+
+Author: digger3 - USK@zALLY9pbzMNicVn280HYqS2UkK0ZfX5LiTcln-cLrMU,GoLpCcShPzp3lbQSVClSzY7CH9c9HTw0qRLifBYqywY,AQACAAE/WebOfTrust/1895 .
+
+I tend to hang around on Sone and freenode IRC 
