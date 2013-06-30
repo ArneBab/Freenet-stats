@@ -135,11 +135,12 @@ Versions
 ```{r versions, fig.width=20, message=FALSE, echo=FALSE, warning=FALSE}
 versions <- read.table("version_distribution/3_days.txt",
                             header=T, 
-                            sep="\t")
+                            sep="\t",
+                            check.names = F)
 versions$time <- as.POSIXct(versions$time, origin = "1970-01-01")
-versions <- melt(versions, id="time")
+versions <- melt(versions, id="time", variable_name = "version")
 
-ggplot(data=versions, aes(time, value, group=variable, color=variable)) +
+ggplot(data=versions, aes(time, value, group=version, color=version)) +
   geom_smooth(method="loess", span=0.3) + 
   geom_jitter(alpha=0.2) + 
   ylab("Number of peers with this version")
@@ -153,14 +154,14 @@ announcements <- read.csv("announcements/plot_data.txt", sep="\t", header=TRUE, 
 
 announcements$Time <- as.POSIXct(announcements$Time, origin="1970-01-01")
 announcements <- subset(announcements, Time > Sys.time() - 3600*24*14)
-announcements <- melt(announcements, id="Time")
+announcements <- melt(announcements, id="Time", variable_name = "type")
 
 
-ggplot(data=announcements, aes(Time,value, color=variable)) + geom_smooth() + 
-  geom_jitter(aes(Time, value, color=variable), span=0.1, alpha=0.2) + 
+ggplot(data=announcements, aes(Time,value, color=type)) + 
+  geom_smooth(method="loess", span=0.3) + 
+  geom_jitter(aes(Time, value, color=type), alpha=0.2) + 
   scale_y_continuous(trans=log2_trans()) + 
   ylab("number of peers on a log2 scale")
-
 ```
 
 
@@ -174,13 +175,13 @@ connected <- read.table("peer_stats/connection_history.txt",
                             
 connected$Time <- as.POSIXct(connected$Time, origin="1970-01-01")
 connected <- subset(connected, Time > Sys.time() - 3600*24*14)
-connected <- melt(connected, id="Time")
+connected <- melt(connected, id="Time", variable_name="Connection status")
 
-ggplot(data=connected, aes(Time,value, group=variable, color=variable)) + geom_smooth() + 
-  geom_jitter(aes(Time, value, color=variable, group=variable), span=0.1, alpha=0.2) +
+ggplot(data=connected, aes(Time,value, group=`Connection status`, color=`Connection status`)) + 
+  geom_smooth(method="loess", span=0.2) + 
+  geom_jitter(aes(Time, value, color=`Connection status`, group=`Connection status`), alpha=0.15) +
   ylab("Number of connected peers")
 ```
-
 
 
 Author: digger3 - USK@zALLY9pbzMNicVn280HYqS2UkK0ZfX5LiTcln-cLrMU,GoLpCcShPzp3lbQSVClSzY7CH9c9HTw0qRLifBYqywY,AQACAAE/WebOfTrust/1895 .
