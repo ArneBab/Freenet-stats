@@ -62,7 +62,7 @@ end
 fetch = File.open("fetch.csv", "w")
 
 fetch.puts "version\tdate\tdelta\tratio\ttime"
-data = File.open("data.csv", "r")
+data = File.open("data.txt", "r")
 data.each_line do |line|
 	split = line.split("!")
 	version = split[1]
@@ -83,7 +83,7 @@ data.close
 
 
 #insert times
-data = File.open("data.csv", "r")
+data = File.open("data.txt", "r")
 insert = File.open("insert.csv", "w")
 insert.puts "version\tdate\ttime"
 data.each_line do |line|
