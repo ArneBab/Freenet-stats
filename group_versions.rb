@@ -6,7 +6,7 @@ versions = Hash.new
 last_group = 0
 
 FREENET_PATH = "/home/tmarkus/checkouts/fred/src/freenet/node"
-`cd #{FREENET_PATH} && git whatchanged -p Version.java | grep -E "\\+.*(buildNumber|newLastGoodBuild)" | tac`.each_line do |line|
+`cd #{FREENET_PATH} && git pull origin next && git whatchanged -p Version.java | grep -E "\\+.*(buildNumber|newLastGoodBuild)" | tac`.each_line do |line|
 	if line.include?("newLastGoodBuild")
 		if (line =~ /\d+/)
 			last_group = /\d+/.match(line)[0].to_i
