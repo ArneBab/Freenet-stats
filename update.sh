@@ -40,9 +40,9 @@ cat 7.csv >> data.txt
 $WGET "http://$HOST/freenet:USK@KAj1tYINJWsmKLT1zubtabyX78ATEvT0M7ba9qCQu50,gha8s6LJE9gDMfRp-Js5eniPpK8Tt1BQzkNJJGhkKEM,AQACAAE/freenet_daily_stats_oo/-15/?$PARAMS" -O 8.csv
 cat 8.csv >> data.txt
 
-# Thomas - start at 04:00 CET
-#cp ~/freenet/freenet/many-single-blocks-test-TESTING-LOCAL.csv 9.csv
-#cat 9.csv >> data.csv
+# Thomas - start at 05:00 CET
+cp ~/freenet/fetchtest/many-single-blocks-test-TEST.csv 9.csv
+cat 9.csv >> data.txt
 
 date
 

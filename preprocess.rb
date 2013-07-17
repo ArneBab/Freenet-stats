@@ -70,7 +70,7 @@ data.each_line do |line|
 
 	available = createAvailable(split)
 	
-	0.upto(8).each do |delta|
+	1.upto(8).each do |delta|
 		ratio = getFetchRatio(available, delta, split)
 		time = getAverageFetchTime(available, delta, split)
 		if (ratio != nil)
