@@ -57,7 +57,7 @@ cd announcements && ruby generate_summary.rb && cd .. || exit 1
 cd bootstrapping && ruby bootstrapping.rb && cd .. || exit 1
 
 
-Rscript -e 'library(knitr); knit2html("index.Rmd", options=c("use_xhtml","smartypants","highlight_code"))'
+Rscript -e 'library(knitr); knit2html("index.Rmd", options=c("use_xhtml","smartypants","skip_style", stylesheet="style.css"))'
 
 rm *.csv
 rm *.bz2
