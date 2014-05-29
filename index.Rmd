@@ -65,7 +65,7 @@ plotit <- function(datai){
     cat(paste('<h3> Plot and linear regression model for data inserted ', days_inserted, 'days ago and last fetched', days_fetched, 'days ago</h3>\n'))
     
     plot <- ggplot(data=subset(datai, delta==deltaValue), aes(date, ratio, group=1, fill=mandatory, color=mandatory)) +
-      geom_smooth(aes(label="smoothed data"), color="grey", alpha=0.08, span=0.3, se=F) +
+      geom_smooth(aes(label="smoothed data"), color="grey", alpha=0.08, span=0.3, se=F, method="loess") +
       geom_boxplot(aes(group=mandatory), alpha=0.4) +
       geom_jitter() + 
       ggtitle(paste("Fetch ratio for the last", length(last_mandatory), "mandatory builds for data inserted", (2^deltaValue)-1, "day(s) ago.")) + 
@@ -106,7 +106,7 @@ The following graph plots how long it takes for an average request for a single 
 #plot request times for different versions over time for the last 10 mandatory builds
 last_10_builds <- subset(data, mandatory %in% tail(unique(data$mandatory), 10))
 ggplot(last_10_builds, aes(date, time, group=delta, color=delta)) + 
-  geom_smooth(span=0.2, size=2, alpha=0.6, se=F) +
+  geom_smooth(span=0.2, size=2, alpha=0.6, se=F, method="loess") +
   geom_jitter(size=2, alpha=0.3) +
   ylab("Fetch duration in milliseconds")
 
@@ -163,16 +163,17 @@ bootstrapping <- read.table("bootstrapping/data.txt",
 colnames(bootstrapping) <- c("date", "time")
 
 bootstrapping$date <- as.Date(bootstrapping$date)
+bootstrapping$time <- as.numeric(bootstrapping$time)
 
 xa <- ylab("Time required to get 6 seednodes in seconds")
 
-ggplot(data=subset(bootstrapping, date > Sys.Date() - 14), aes(date, time)) +
-  geom_smooth(aes(date, time), method="loess") + 
+ggplot(data=subset(bootstrapping, date > Sys.Date() - 28), aes(date, time, group=1)) +
+  geom_smooth(aes(date, time), method="loess") +
   geom_jitter(aes(date, time), alpha=0.2) + xa
 
 
-ggplot(data=bootstrapping, aes(date, "bootstrapping.time")) +
-  geom_smooth(aes(date, time), span=0.1, method="loess") + 
+ggplot(data=bootstrapping, aes(date, "bootstrapping.time", group=1)) +
+  geom_smooth(aes(date, time), method="loess") + 
   geom_jitter(aes(date, time), alpha=0.2) + xa
 
 ```
@@ -210,10 +211,11 @@ announcements <- read.csv("announcements/plot_data.txt", sep="\t", header=TRUE, 
 announcements$Time <- as.POSIXct(announcements$Time, origin="1970-01-01")
 announcements <- subset(announcements, Time > Sys.time() - 3600*24*14)
 announcements <- melt(announcements, id="Time", variable_name = "type")
+announcements <- subset(announcements, value > 1.0)
 
 
 ggplot(data=announcements, aes(Time,value, color=type)) + 
-  geom_smooth(method="loess", span=0.3) + 
+  geom_smooth(method="loess") + 
   geom_jitter(aes(Time, value, color=type), alpha=0.2) + 
   scale_y_continuous(trans=log2_trans()) + 
   ylab("number of peers on a log2 scale")

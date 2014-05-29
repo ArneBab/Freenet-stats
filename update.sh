@@ -48,7 +48,7 @@ date
 
 $RUBY preprocess.rb || exit 1
 
-(cd ~/checkouts/fred/ && git pull origin master)
+(cd ~/checkouts/fred/ && git pull origin next)
 $RUBY group_versions.rb > group.csv 
 
 #update the version distribution stats
